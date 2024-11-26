@@ -13,6 +13,7 @@ public class UserDashboard extends JFrame {
     private DefaultListModel<String> listModel; // Store the list model for easy access
     private User loggedInUser ;
     private PostController postController;
+    private JLabel usernameLabel; // Label to display the logged-in user's username
 
     public UserDashboard(User loggedInUser , PostController postController) {
         this.loggedInUser  = loggedInUser ; // Initialize the logged-in user
@@ -24,8 +25,17 @@ public class UserDashboard extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
+        // Create a label to display the logged-in user's username
+        usernameLabel = new JLabel("Logged in as: " + loggedInUser .getUsername());
+        usernameLabel.setFont(new Font("Arial", Font.BOLD, 16)); // Set font for better visibility
+        usernameLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding
+        add(usernameLabel, BorderLayout.NORTH); // Add the label to the top of the frame
+
         listModel = new DefaultListModel<>();
         postList = new JList<>(listModel); // Initialize the JList with the model
+
+        // Set custom renderer for the post list
+        postList.setCellRenderer(new PostListCellRenderer());
 
         // Load posts for the logged-in user
         loadPosts();
@@ -61,8 +71,22 @@ public class UserDashboard extends JFrame {
         listModel.clear(); // Clear existing posts in the model
 
         for (Post post : userPosts) {
-            listModel.addElement(post.getContent()); // Assuming Post has a getContent() method
+            String username = postController.getUsernameByUserId(post.getUserId()); // Get the username of the user who made the post
+            if (username != null) {
+                listModel.addElement(username + ": " + post.getContent()); // Format the string to include username and post content
+            } else {
+                listModel.addElement("Unknown User: " + post.getContent()); // Fallback if username is not found
+            }
         }
     }
-    
+
+    // Custom cell renderer for the post list
+    private class PostListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding (top, left, bottom, right)
+            return label;
+        }
+    }
 }

@@ -159,7 +159,7 @@ public class PostController {
 
     public String getUsernameByUserId(int userId) {
         User user = users.get(userId); // Assuming 'users' is a map of userId to User
-        return (user != null) ? user.getUsername() : "Unknown User";
+        return (user != null) ? user.getUsername() : "jack";
     }
 }
 
