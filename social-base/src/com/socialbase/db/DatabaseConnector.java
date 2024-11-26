@@ -114,12 +114,34 @@ public class DatabaseConnector {
     // CRUD Operations for Post
     public void createPost(Post post) {
         String query = "INSERT INTO posts (user_id, content, created_at) VALUES (?, ?, ?)";
-        try (Connection connection = getConnection(); // Get a new connection
-        PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (Connection connection = getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, post.getUserId());
             stmt.setString(2, post.getContent());
             stmt.setTimestamp(3, post.getCreatedAt());
-            stmt.executeUpdate();
+    
+            // Execute the insert and get the number of affected rows
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                // Retrieve the generated keys (post_id)
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        int generatedPostId = generatedKeys.getInt(1);
+                        post.setPostId(generatedPostId); // Set the generated post ID
+                        System.out.println("Post created successfully with ID: " + generatedPostId);
+    
+                        // Verify the post is stored in the database
+                        Post createdPost = readPost(generatedPostId); // Retrieve the post by ID
+                        if (createdPost != null) {
+                            System.out.println("Post verified successfully: " + createdPost.getContent());
+                        } else {
+                            System.out.println("Post verification failed: Post not found in the database.");
+                        }
+                    }
+                }
+            } else {
+                System.out.println("Post creation failed: No rows affected.");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

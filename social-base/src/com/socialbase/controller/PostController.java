@@ -22,17 +22,57 @@ public class PostController {
     private DatabaseConnector databaseConnector;
     
         // Create a new post
-        public Post createPost(int userId, String content) {
-            Post newPost = new Post(postIdCounter++, userId, content, new Timestamp(System.currentTimeMillis()));
-            posts.put(newPost.getPostId(), newPost);
-            return newPost;
+    public Post createPost(Post newPost) {
+        String query = "INSERT INTO posts (user_id, content, created_at) VALUES (?, ?, ?)";
+        try (Connection connection = databaseConnector.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, newPost.getUserId()); // Use the correct method to get user ID
+            stmt.setString(2, newPost.getContent());
+            stmt.setTimestamp(3, newPost.getCreatedAt());
+
+            // Execute the insert and get the generated keys
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        int generatedPostId = generatedKeys.getInt(1);
+                        newPost.setPostId(generatedPostId); // Set the generated post ID
+                        System.out.println("Post created successfully with ID: " + generatedPostId);
+                        return newPost; // Return the created post
+                    }
+                }
+            } else {
+                System.out.println("Post creation failed: No rows affected.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("Database error during post creation: " + e.getMessage());
         }
-    
-    
-        // Retrieve all posts
-        public List<Post> getAllPosts() {
-            return new ArrayList<>(posts.values());
+        return null; // Return null if creation failed
+    }
+
+    // Retrieve all posts
+    public List<Post> getAllPosts() {
+        List<Post> allPosts = new ArrayList<>();
+        String query = "SELECT * FROM posts";
+        try (Connection connection = databaseConnector.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                allPosts.add(new Post(
+                    rs.getInt("post_id"),
+                    rs.getInt("user_id"),
+                    rs.getString("content"),
+                    rs.getTimestamp("created_at")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("Database error during retrieving posts: " + e.getMessage());
         }
+        return allPosts; // Return the list of all posts
+    }
+
     
         // Implement the loginUser  method
         public User registerUser (String username, String password, String email) {
@@ -49,16 +89,6 @@ public class PostController {
             return newUser ; // Return the newly created user
         }
        
-        public List<Post> getPostsByUserId(int userId) { // Corrected method name
-            List<Post> userPosts = new ArrayList<>();
-            for (Post post : posts.values()) {
-                if (post.getUserId() == userId) { // Corrected method call
-                    userPosts.add(post);
-                }
-            }
-            return userPosts; // Return the list of posts for the specified user
-        }
-        
         public PostController() {
             this.databaseConnector = new DatabaseConnector();
             this.posts = new HashMap<>(); // Initialize the posts map
@@ -103,6 +133,33 @@ public class PostController {
     private String hashPassword(String password) {
         // Implement your password hashing logic here (e.g., using BCrypt)
         return password; // Placeholder, replace with actual hashed password
+    }
+
+
+    public List<Post> getPostsByUserId(int userId) {
+        List<Post> userPosts = new ArrayList<>();
+        String query = "SELECT * FROM posts WHERE user_id = ?";
+        try (Connection connection = databaseConnector.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                userPosts.add(new Post(
+                    rs.getInt("post_id"),
+                    rs.getInt("user_id"),
+                    rs.getString("content"),
+                    rs.getTimestamp("created_at")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return userPosts; // Return the list of posts
+    }
+
+    public String getUsernameByUserId(int userId) {
+        User user = users.get(userId); // Assuming 'users' is a map of userId to User
+        return (user != null) ? user.getUsername() : "Unknown User";
     }
 }
 

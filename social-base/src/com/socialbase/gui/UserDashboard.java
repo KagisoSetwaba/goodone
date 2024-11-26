@@ -25,23 +25,20 @@ public class UserDashboard extends JFrame {
         setLayout(new BorderLayout());
 
         listModel = new DefaultListModel<>();
-        // Retrieve posts for the logged-in user
-        List<Post> userPosts = postController.getPostsByUserId(loggedInUser .getUserId());
-        for (Post post : userPosts) {
-            listModel.addElement(post.getContent()); // Assuming Post has a getContent() method
-        }
+        postList = new JList<>(listModel); // Initialize the JList with the model
 
-        postList = new JList<>(listModel);
+        // Load posts for the logged-in user
+        loadPosts();
+
         JButton createPostButton = new JButton("Create New Post");
         JButton logoutButton = new JButton("Logout"); // Logout button
 
         // Action listener for creating a new post
         createPostButton.addActionListener(e -> {
-            PostCreationFrame postCreationFrame = new PostCreationFrame(loggedInUser .getUserId(), postController);
+            PostCreationFrame postCreationFrame = new PostCreationFrame(loggedInUser .getUserId(), postController, this);
             postCreationFrame.setVisible(true);
         });
 
-        
         // Action listener for the logout button
         logoutButton.addActionListener(e -> {
             // Close the current dashboard and return to the login screen
@@ -57,4 +54,15 @@ public class UserDashboard extends JFrame {
         buttonPanel.add(logoutButton); // Add logout button to the panel
         add(buttonPanel, BorderLayout.SOUTH);
     }
+
+    // Load posts for the logged-in user
+    public void loadPosts() {
+        List<Post> userPosts = postController.getPostsByUserId(loggedInUser .getUserId()); // Retrieve posts for the logged-in user
+        listModel.clear(); // Clear existing posts in the model
+
+        for (Post post : userPosts) {
+            listModel.addElement(post.getContent()); // Assuming Post has a getContent() method
+        }
+    }
+    
 }
